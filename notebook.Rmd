@@ -1,0 +1,350 @@
+---
+title: "R Notebook"
+output:
+  html_notebook: default
+  pdf_document: default
+---
+# Stage 1  
+## Step 1: Reading in the dataset and some preparations 
+If nothing is displayed here, see the notebook.
+```{r Preparations}
+fish <- read.csv(file = 'fish.csv')
+install.packages("corrplot")
+install.packages("MLmetrics")
+install.packages("ggplot2")
+getmode <- function(v) {
+  uniqv <- unique(v)
+  uniqv[which.max(tabulate(match(v, uniqv)))] # from tutorialspoint
+}
+species <- c('Bream', 'Parkki', 'Perch', 'Pike', 'Roach', 'Smelt', 'Whitefish')
+showDistGraph <- function(parameter) {
+  par(mfrow=c(3,3))
+  for (specie in species) {
+    group <- fish[which(fish$Species == specie), ]
+    hist(unlist(group[parameter]), breaks = "Sturges", 
+         main = paste(paste(parameter, "distribution of"),specie),
+         xlab = parameter)
+  }
+  hist(unlist(fish[parameter]), breaks = "Sturges", 
+       main = paste(parameter, "distribution of all fish"), xlab = parameter)
+  par(mfrow=c(1,1))
+}
+```  
+## Step 2: Description of the dataset  
+Dataset called "Fish market" contains physical measurements of 7 common species of fish. I got it from kaggle(`https://www.kaggle.com/aungpyaeap/fish-market`). This dataset contains following variables:  
+* Species. Qualitative variable. Denotes the name of the specie.  
+* Weight. Quantitative variable. Measured in grams. Denotes the weight of fish.  
+* Length1. Quantitative variable. Measured in centimeters. Denotes vertical length of fish. Will be used as primary length measure.  
+* Length2. Quantitative variable. Measured in centimeters. Denotes diagonal length of fish.  
+* Length3. Quantitative variable. Measured in centimeters. Denotes cross length of fish.  
+* Height. Quantitative variable. Measured in centimeters. Denotes hight of fish.  
+* Width. Quantitative variable. Measured in centimeters. Denotes width of fish.  
+
+## Step 3: Look for missing values
+```{r}
+any(is.na(fish))
+```
+There are no missing values.  
+
+## Step 4 and 5: Data visualization and description
+First we look at quantities at which species are present in the dataset.  
+```{r}
+speciesFreq <- data.frame(table(fish$Species))
+barplot(speciesFreq$Freq, names.arg = speciesFreq$Var1, ylab="Number",
+        xlab="Species")
+```
+From this graph we can see that perch, bream and roach represent the vast majority of the sample.  
+Next we will look at length, heigth, width, and weight distributions. Both within species and on average.
+
+### Vertical length distributions: 
+```{r}
+showDistGraph("Length1")
+```
+Distributions of length within species take on different forms, but if we take a look at the distribution of length of all species it is somewhat normally distributed with some outliers.  
+
+### Height distributions: 
+```{r}
+showDistGraph("Height")
+```
+Again, graphs take on different forms. But height distribution of all species looks bimodal this time. Inconsistency between graphs is likely due to unique anatomy of each specie. The only graph the looks normally distributed is height distribution of roach.
+
+### Width distributions: 
+```{r}
+showDistGraph("Width")
+```
+Similar situation as with heights. Also these graphs have a lot of missing intervals.
+
+### Weight distributions:
+```{r}
+showDistGraph("Weight")
+```
+As with width, there are some missing intervals. Weight distribution of whitefish and weight distribution of all species appear to have a very large positive skew.  
+
+# Stage 2
+## Step 1 and 2: Quantitative overview and summary
+### Vertical length
+#### Central tendency measures 
+```{r}
+mean(fish$Length1)
+getmode(fish$Length1)
+median(fish$Length1)
+mean(fish$Length1, trim = 0.1) # trimmed mean
+```
+##### Summary  
+Mean of ~26.25(cm) is totally expected as dataset mostly consists of fish which length is between 20-30 centimeters. Mode of 19 cm corresponds with length distribution graph for all species; there lies one of the highes points. Median also falls within 20-30 cm range of somewhat normally distributed graph of length. Trimming 10% didn't change the mean much because majority of the fish lengths falls into 20-30 cm range. Overall since distribution is somewhat normally distributed central tendency values are fairly close together except for mode.
+
+#### Variability measures  
+```{r}
+var(fish$Length1)
+sd(fish$Length1)
+IQR(fish$Length1)
+range(fish$Length1)[2] - range(fish$Length1)[1]
+```
+##### Summary  
+From variablity measures we can see that lengths are spread out which corresponds to the lengths distribution graph which is of wide shape. This is likely due to the presence of various species.  
+
+### Height
+#### Central tendency measures 
+```{r}
+mean(fish$Height)
+getmode(fish$Height)
+median(fish$Height)
+mean(fish$Height, trim = 0.05)
+```
+##### Summary  
+Central tendency measures fall within 5-9 cm range which corresponds to the height distribution graph. These measures aren't very close to each other which is explained by the fact that distribution is not normal.  
+
+#### Variability measures  
+```{r}
+var(fish$Height)
+sd(fish$Height)
+IQR(fish$Height)
+range(fish$Height)[2] - range(fish$Height)[1]
+```
+##### Summary  
+Variablity measures show that heights are very spread out. Interquartile range isn't as big because there is a lot of small fish therefore difference between quartiles isn't big. Range is big due to the fact that bigger fish is still present in the sample. Overall these values fall inline with the distribution graph. 
+
+### Width  
+#### Central tendency measures  
+```{r}
+mean(fish$Width)
+getmode(fish$Width)
+median(fish$Width)
+mean(fish$Width, trim = 0.05)
+```
+##### Summary 
+From the width distribution graph which has a positive scew we can see that majority of the fish widths falls into 3-5 cm range. Central tendency measures also fall within this range due to the positive scew of the distribution graph. 
+
+#### Variability measures 
+```{r}
+var(fish$Width)
+sd(fish$Width)
+IQR(fish$Width)
+range(fish$Width)[2] - range(fish$Width)[1]
+```
+#### Summary
+Fish widths are spread out. Also range is very big. We can see the similar picture from the weight distribution graph which is spread out.  
+
+### Weight
+#### Central tendency measures 
+```{r}
+mean(fish$Weight)
+getmode(fish$Weight)
+median(fish$Weight)
+mean(fish$Weight, trim = 0.05)
+```
+##### Summary
+Central tendency measures are under 400 grams due to the distribution graph having a very large positive skew. From this analysis we can conclude that large portion of the sample doesn't weigh more than 400 grams.  
+
+#### Variability measures 
+```{r}
+var(fish$Weight)
+sd(fish$Weight)
+IQR(fish$Weight)
+range(fish$Weight)[2] - range(fish$Weight)[1]
+```
+##### Summary
+Variablity measures show that distribution is spread out. Distribution graphs shows that there are faily larger groups that weigh 400-600, 600-800, and 800-1000 gramms. This also explains large values of range and interquartile range.  
+
+# Stage 3
+## Step 1: Correlation matrix
+Almost all values are quantitative and seemingly related. We just need to remove the `Species` variable. Also we can't use Pearson's correlation because most of the parameters aren't normally distributed. 
+```{r}
+fishCopy <- fish
+fishCopy$Species <- NULL
+fishCorel <- cor(fishCopy, method = "spearman")
+library(corrplot)
+corrplot(round(fishCorel, 2), method = "number")
+```
+### Summary  
+From this matrix we can see that correlations between variables are high. Especially high are correlations between Length1 and Weight, and between Length1 and Width. Length1, Length2, and Length3 being similar measures have near perfect correlation.  
+
+## Steps 2 and 3 for Length1/Weight pair  
+Independent variable: Length1  
+Dependent variable: Weight  
+
+### Scatterplot
+```{r}
+library(ggplot2)
+# Length/Weight
+ggplot(fish, aes(x=Length1, y=Weight)) +
+  geom_point(aes(color=Species, size=5)) + xlab('Length(cm)') + ylab('Weight(gr)')
+```
+### Summary  
+Overall observations indicate that there might be a exponential relationship between Length1 and Weight. Pike is following it's own straight line , while others are tightly grouped together. Bream and whitefish seem to form a straight line. All others form a curved line.  
+
+### Linear regression model  
+For this part only bream and whitefish will be used. Only they seem to fall into straight line.
+```{r}
+weightLength <- rbind(fish[which(fish$Species == 'Bream'), ],
+                      fish[which(fish$Species == 'Whitefish'), ])
+weightModel  <- lm(weightLength$Weight ~ weightLength$Length1)
+summary(weightModel)
+plot(weightLength$Weight ~ weightLength$Length1, ylab = 'Weight(gr)', xlab = 'Length(cm)')
+abline(weightModel$coefficients[1], weightModel$coefficients[2], col="red",
+       lwd=3)
+```
+### Summary  
+Model fits overall pattern but errors of prediction can be fairly high. R^2 tells us that about 90% of dependent variable should be predictable. We should be able to roughly estimate the weight of bream and whitefish knowing their length.  
+
+## Steps 2 and 3 for Length1/Width pair
+Independent variable: Length1  
+Dependent variable: Weight  
+
+### Scatterplot
+```{r}
+ggplot(fish, aes(x=Length1, y=Width)) +
+  geom_point(aes(color=Species, size=5)) + xlab('Length(cm)') + ylab('Width(cm)')
+```
+### Summary 
+Observations form a fairly clear straight line with pike following it's own line. Scatterplot indicates that there might be a linear relationship between length and width for most fish species in the sample. 
+
+### Linear regression model 
+Pike will be excluded because it is considered an outlier.
+```{r}
+widthLength <- fish[-which(fish$Species == 'Pike'), ]
+widthModel <- lm(widthLength$Width ~ widthLength$Length1)
+summary(widthModel)
+plot(widthLength$Width ~ widthLength$Length1, ylab = 'Width(cm)', xlab = 'Length(cm)')
+abline(widthModel$coefficients[1], widthModel$coefficients[2], col="red",
+       lwd=3)
+```
+Model fits the data quite well with most residuals being fairly small. R^2 tells us that we should be able to predict about 95% of dependent variable. We should be able to predict fish width for most species quite reliably.
+
+# Stage 4
+## Step 1: Picking and describing a lottery
+I chose a lottery called "Vikinglotto". Players need to pick 6 numbers from 48 and 1 additional number from 8. Player wins a jackpot if he/she correctly picks all 6 numbers as well as additional number. Players can fill multiple playing fields. There are 9 winning cases depending on how many numbers player guessed. 
+
+## Step 2: Computing probabilities 
+Following calculations assume one playing field. 
+
+### I case: 6 main number and 1 additional number(jackpot)
+```{r}
+(1/choose(48, 6)) * 1/choose(8,1)
+```
+### II case: 6 main numbers 
+```{r}
+1/choose(48, 6)
+```
+### III case: 5 main numbers and 1 additional number
+```{r}
+(1/choose(48, 5)) * 1/8
+```
+### IV case: 5 main numbers 
+```{r}
+1/choose(48, 5)
+```
+### V case: 4 main numbers and 1 additional number
+```{r}
+(1/choose(48, 4)) * 1/8
+```
+### VI case: 4 main numbers 
+```{r}
+1/choose(48, 4)
+```
+### VII case: 3 main numbers and 1 additional number
+```{r}
+(1/choose(48, 3)) * 1/8
+```
+### VIII case: 3 main numbers
+```{r}
+1/choose(48, 3)
+```
+### IX case: 2 main numbers and 1 additional number
+```{r}
+(1/choose(48, 2)) * 1/8
+```
+## Step 3: Explanation
+For computation of probability of picking correctly `k` main numbers I used following formula: number of ways to pick correct numbers/number of ways to pick `k` numbers from 48 numbers. Upper part is always equal to 1 as there is only one way to pick all correct numbers from all correct numbers(kCk = 1). Lower part is computed using binomial coefficients(nCk).
+For additional number I used same principle. It resulted in following result: 1C1/8C1 = 1/8. If a case required additional number to be guessed I just multiplied probability of guessing main numbers with probability of guessing the additional number.
+In case a player filled more than 1 playing field, case probabilities can be multiplied by number of playing fields, assuming we are still considering one of them. If we consider combination of them, then we use addition and multiplication.
+
+## Step 4: Report
+Even the probability of winning the smallest pot(case IX) is almost 10 times less than 1%. Furthermore not all cases are available in all countries making the lottery even more difficult to win. That's to be expected with lotteries that have big winning prizes. Overall complexity of calculations wasn't very difficult as rules are fairly simple.
+
+# Stage 5 
+## Length1/Width pair
+### Step 1: Splitting the dataset  
+I chose training set to be 70% of the sample, and testing set to 30%. Seeding is done for reproducting the results.
+```{r}
+sampleSize = floor(0.7*nrow(widthLength))
+set.seed(430)
+picked = sample(seq_len(nrow(widthLength)),size = sampleSize)
+trainSet <- widthLength[picked, ]
+testSet <- widthLength[-picked, ]
+```
+### Step 2: Training the model 
+```{r}
+predictions <- predict(lm(Width ~ Length1, trainSet), testSet)
+```
+### Step 3: Evaluation
+```{r}
+evaluation <- cbind(testSet$Width, predictions)
+colnames(evaluation) <- c('Actual', 'Predicted')
+evaluation <- as.data.frame(evaluation)
+```
+Average difference between predicted and actual values: 
+```{r}
+mean(with(evaluation, abs(Actual - Predicted)))
+```
+RMSE and MAPE:  
+```{r}
+library(MLmetrics)
+RMSE(evaluation$Predicted, evaluation$Actual)
+MAPE(evaluation$Predicted, evaluation$Actual)
+```
+#### Summary  
+Overall model performed well. It was able to fairly accurately predict the width of the fish even for several species(except for pike which was excluded). The average difference between predicted and actual values is roughly equal to a quarter of a centimeter which is fairly small when we look at width distribution graph.  
+
+## Length1/Weight pair 
+### Step 1: Splitting the dataset
+```{r}
+sampleSize = floor(0.7*nrow(weightLength))
+set.seed(123)
+picked = sample(seq_len(nrow(weightLength)),size = sampleSize)
+trainSet <- weightLength[picked, ]
+testSet <- weightLength[-picked, ]
+```
+### Step 2: Training the model 
+```{r}
+predictions <- predict(lm(Weight ~ Length1, trainSet), testSet)
+```
+### Step 3: Evaluation  
+```{r}
+evaluation <- cbind(testSet$Weight, predictions)
+colnames(evaluation) <- c('Actual', 'Predicted')
+evaluation <- as.data.frame(evaluation)
+```
+Average difference between predicted and actual values:  
+```{r}
+mean(with(evaluation, abs(Actual - Predicted)))
+```
+RMSE and MAPE:  
+```{r}
+RMSE(evaluation$Predicted, evaluation$Actual)
+MAPE(evaluation$Predicted, evaluation$Actual)
+```
+#### Summary  
+This model isn't very accurate. Difference between predicted and actual values can be relatively big which was indicated by scatterplot in previous stage. With that said model isn't terrible and can be used for rough estimations.
+
+
